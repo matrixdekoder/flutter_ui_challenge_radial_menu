@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttery/layout.dart';
 
 void main() => runApp(new MyApp());
 
@@ -113,15 +114,68 @@ class _MyHomePageState extends State<MyHomePage> {
             // True center
             new Align(
               alignment: Alignment.center,
-              child: new IconButton(
-                  icon: new Icon(
-                    Icons.cancel,
-                  ),
-                  onPressed: () {
-                    showMenu(center);
-                  }),
+              child: new AnchoredRadialMenu(
+                child: new IconButton(
+                    icon: new Icon(
+                      Icons.cancel,
+                    ),
+                    onPressed: () {
+                      showMenu(center);
+                    }),
+              ),
             ),
           ],
         ));
+  }
+}
+
+class AnchoredRadialMenu extends StatefulWidget {
+  final Widget child;
+
+  AnchoredRadialMenu({
+    this.child,
+  });
+
+  @override
+  _AnchoredRadialMenuState createState() => new _AnchoredRadialMenuState();
+}
+
+class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
+  @override
+  Widget build(BuildContext context) {
+    return AnchoredOverlay(
+      showOverlay: true,
+      overlayBuilder: (BuildContext context, Offset anchor) {
+        return new RadialMenu(
+          anchor: anchor,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+class RadialMenu extends StatefulWidget {
+  final Offset anchor;
+
+  RadialMenu({
+    this.anchor,
+  });
+
+  @override
+  _RadialMenuState createState() => new _RadialMenuState();
+}
+
+class _RadialMenuState extends State<RadialMenu> {
+  @override
+  Widget build(BuildContext context) {
+    return new CenterAbout(
+      position: widget.anchor,
+      child: new Container(
+        width: 50.0,
+        height: 50.0,
+        color: Colors.red,
+      ),
+    );
   }
 }
