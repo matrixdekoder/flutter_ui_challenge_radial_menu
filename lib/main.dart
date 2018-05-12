@@ -1,5 +1,9 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:fluttery/layout.dart';
+import 'package:fluttery/gestures.dart';
+import 'package:radial_menu/layout.dart';
 
 void main() => runApp(new MyApp());
 
@@ -157,9 +161,17 @@ class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
 
 class RadialMenu extends StatefulWidget {
   final Offset anchor;
+  final double bubbleSize;
+  final double radius;
+  final double startAngle;
+  final double endAngle;
 
   RadialMenu({
     this.anchor,
+    this.bubbleSize = 50.0,
+    this.radius = 75.0,
+    this.startAngle = -pi / 2, // default to top of unit circle
+    this.endAngle = 2 * pi - (pi / 2), // default to top of unit circle + 360 degrees
   });
 
   @override
@@ -169,13 +181,69 @@ class RadialMenu extends StatefulWidget {
 class _RadialMenuState extends State<RadialMenu> {
   @override
   Widget build(BuildContext context) {
-    return new CenterAbout(
-      position: widget.anchor,
-      child: new Container(
-        width: 50.0,
-        height: 50.0,
-        color: Colors.red,
-      ),
+    return new Stack(
+      children: <Widget>[
+        // Center
+        new CenterAbout(
+          position: widget.anchor,
+          child: new Container(
+            width: 50.0,
+            height: 50.0,
+            color: Colors.red,
+          ),
+        ),
+
+        // Radial
+        new PolarPosition(
+          origin: widget.anchor,
+          coord: new PolarCoord(-pi / 2, widget.radius),
+          child: new Container(
+            width: 50.0,
+            height: 50.0,
+            color: Colors.green,
+          ),
+        ),
+
+        new PolarPosition(
+          origin: widget.anchor,
+          coord: new PolarCoord(-pi / 2 + (1 * 2 * pi / 5), widget.radius),
+          child: new Container(
+            width: 50.0,
+            height: 50.0,
+            color: Colors.green,
+          ),
+        ),
+
+        new PolarPosition(
+          origin: widget.anchor,
+          coord: new PolarCoord(-pi / 2 + (2 * 2 * pi / 5), widget.radius),
+          child: new Container(
+            width: 50.0,
+            height: 50.0,
+            color: Colors.green,
+          ),
+        ),
+
+        new PolarPosition(
+          origin: widget.anchor,
+          coord: new PolarCoord(-pi / 2 + (3 * 2 * pi / 5), widget.radius),
+          child: new Container(
+            width: 50.0,
+            height: 50.0,
+            color: Colors.green,
+          ),
+        ),
+
+        new PolarPosition(
+          origin: widget.anchor,
+          coord: new PolarCoord(-pi / 2 + (4 * 2 * pi / 5), widget.radius),
+          child: new Container(
+            width: 50.0,
+            height: 50.0,
+            color: Colors.green,
+          ),
+        ),
+      ],
     );
   }
 }
