@@ -13,6 +13,7 @@ class MyApp extends StatelessWidget {
     return new MaterialApp(
       title: 'Radial Menu',
       theme: new ThemeData(
+        brightness: Brightness.dark,
         primarySwatch: Colors.blue,
       ),
       home: new MyHomePage(),
@@ -186,10 +187,11 @@ class _RadialMenuState extends State<RadialMenu> {
         // Center
         new CenterAbout(
           position: widget.anchor,
-          child: new Container(
-            width: 50.0,
-            height: 50.0,
-            color: Colors.red,
+          child: new IconBubble(
+            icon: Icons.clear,
+            diameter: 50.0,
+            foregroundColor: Colors.black,
+            backgroundColor: const Color(0xFFAAAAAA),
           ),
         ),
 
@@ -197,53 +199,109 @@ class _RadialMenuState extends State<RadialMenu> {
         new PolarPosition(
           origin: widget.anchor,
           coord: new PolarCoord(-pi / 2, widget.radius),
-          child: new Container(
-            width: 50.0,
-            height: 50.0,
-            color: Colors.green,
+          child: new IconBubble(
+            icon: Icons.home,
+            diameter: 50.0,
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.blue,
           ),
         ),
 
         new PolarPosition(
           origin: widget.anchor,
           coord: new PolarCoord(-pi / 2 + (1 * 2 * pi / 5), widget.radius),
-          child: new Container(
-            width: 50.0,
-            height: 50.0,
-            color: Colors.green,
+          child: new IconBubble(
+            icon: Icons.search,
+            diameter: 50.0,
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.green,
           ),
         ),
 
         new PolarPosition(
           origin: widget.anchor,
           coord: new PolarCoord(-pi / 2 + (2 * 2 * pi / 5), widget.radius),
-          child: new Container(
-            width: 50.0,
-            height: 50.0,
-            color: Colors.green,
+          child: new IconBubble(
+            icon: Icons.alarm,
+            diameter: 50.0,
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.red,
           ),
         ),
 
         new PolarPosition(
           origin: widget.anchor,
           coord: new PolarCoord(-pi / 2 + (3 * 2 * pi / 5), widget.radius),
-          child: new Container(
-            width: 50.0,
-            height: 50.0,
-            color: Colors.green,
+          child: new IconBubble(
+            icon: Icons.settings,
+            diameter: 50.0,
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.purple,
           ),
         ),
 
         new PolarPosition(
           origin: widget.anchor,
           coord: new PolarCoord(-pi / 2 + (4 * 2 * pi / 5), widget.radius),
-          child: new Container(
-            width: 50.0,
-            height: 50.0,
-            color: Colors.green,
+          child: new IconBubble(
+            icon: Icons.location_on,
+            diameter: 50.0,
+            foregroundColor: Colors.white,
+            backgroundColor: Colors.orange,
           ),
         ),
       ],
+    );
+  }
+}
+
+class IconBubble extends StatelessWidget {
+  final IconData icon;
+  final double diameter;
+  final Color foregroundColor;
+  final Color backgroundColor;
+
+  IconBubble({
+    this.icon,
+    this.diameter,
+    this.foregroundColor,
+    this.backgroundColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return new Bubble(
+      diameter: diameter,
+      backgroundColor: backgroundColor,
+      child: new Icon(
+        icon,
+        color: foregroundColor,
+      ),
+    );
+  }
+}
+
+class Bubble extends StatelessWidget {
+  final double diameter;
+  final Color backgroundColor;
+  final Widget child;
+
+  Bubble({
+    this.diameter,
+    this.backgroundColor,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return new Container(
+      width: diameter,
+      height: diameter,
+      decoration: new BoxDecoration(
+        shape: BoxShape.circle,
+        color: backgroundColor,
+      ),
+      child: child,
     );
   }
 }
