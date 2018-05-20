@@ -1,14 +1,19 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:fluttery/layout.dart';
 import 'package:fluttery/gestures.dart';
 import 'package:meta/meta.dart';
 import 'package:radial_menu/layout.dart';
 import 'package:radial_menu/menu.dart';
 
-void main() => runApp(new MyApp());
+void main() {
+  timeDilation = 10.0;
+  runApp(new MyApp());
+}
 
 class MyApp extends StatelessWidget {
   @override
@@ -52,6 +57,8 @@ class _MyHomePageState extends State<MyHomePage> {
     return new Scaffold(
         appBar: new AppBar(
           leading: new AnchoredRadialMenu(
+            startAngle: 0.0,
+            endAngle: pi / 2,
             child: new IconButton(
                 icon: new Icon(
                   Icons.cancel,
@@ -63,6 +70,8 @@ class _MyHomePageState extends State<MyHomePage> {
           title: new Text(''),
           actions: <Widget>[
             new AnchoredRadialMenu(
+              startAngle: pi,
+              endAngle: pi / 2,
               child: new IconButton(
                   icon: new Icon(
                     Icons.cancel,
@@ -79,6 +88,8 @@ class _MyHomePageState extends State<MyHomePage> {
             new Align(
               alignment: Alignment.centerLeft,
               child: new AnchoredRadialMenu(
+                startAngle: -pi / 2,
+                endAngle: pi / 2,
                 child: new IconButton(
                     icon: new Icon(
                       Icons.cancel,
@@ -93,6 +104,8 @@ class _MyHomePageState extends State<MyHomePage> {
             new Align(
               alignment: Alignment.bottomLeft,
               child: new AnchoredRadialMenu(
+                startAngle: -pi / 2,
+                endAngle: 0.0,
                 child: new IconButton(
                     icon: new Icon(
                       Icons.cancel,
@@ -107,6 +120,8 @@ class _MyHomePageState extends State<MyHomePage> {
             new Align(
               alignment: Alignment.centerRight,
               child: new AnchoredRadialMenu(
+                startAngle: 3 * pi / 2,
+                endAngle: pi / 2,
                 child: new IconButton(
                     icon: new Icon(
                       Icons.cancel,
@@ -121,6 +136,8 @@ class _MyHomePageState extends State<MyHomePage> {
             new Align(
               alignment: Alignment.bottomRight,
               child: new AnchoredRadialMenu(
+                startAngle: 3 * pi / 2,
+                endAngle: pi,
                 child: new IconButton(
                     icon: new Icon(
                       Icons.cancel,
@@ -150,9 +167,13 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class AnchoredRadialMenu extends StatefulWidget {
+  final double startAngle;
+  final double endAngle;
   final Widget child;
 
   AnchoredRadialMenu({
+    this.startAngle = -pi / 2, // default to top of unit circle
+    this.endAngle = 2 * pi - (pi / 2), // default to top of unit circle + 360 degrees
     this.child,
   });
 
@@ -169,6 +190,8 @@ class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
         return new RadialMenu(
           menu: demoMenu,
           anchor: anchor,
+          startAngle: widget.startAngle,
+          endAngle: widget.endAngle,
         );
       },
       child: widget.child,
@@ -272,12 +295,14 @@ class _RadialMenuState extends State<RadialMenu> with TickerProviderStateMixin {
   }
 
   List<Widget> buildRadialBubbles() {
-    double startAngle = -pi / 2;
+    double startAngle = widget.startAngle; //-pi / 2;
+    double sweepAngle = widget.endAngle - startAngle;
     int index = 0;
     int itemCount = widget.menu.items.length;
 
     return widget.menu.items.map((MenuItem item) {
-      final myAngle = startAngle + (2 * pi * (index / itemCount));
+      int indexDivisor = sweepAngle == 2 * pi ? itemCount : itemCount - 1;
+      final myAngle = startAngle + (sweepAngle * (index / indexDivisor));
       ++index;
 
       if (controller.state == RadialMenuState.activating ||
@@ -318,10 +343,10 @@ class _RadialMenuState extends State<RadialMenu> with TickerProviderStateMixin {
 
     if (controller.state == RadialMenuState.expanding) {
       distanceOut = widget.radius * controller.progress;
-      bubbleDiameter = widget.radius * controller.progress;
+      bubbleDiameter = widget.bubbleSize * lerpDouble(0.3, 1.0, controller.progress);
     } else if (controller.state == RadialMenuState.collapsing) {
       distanceOut = widget.radius * (1.0 - controller.progress);
-      bubbleDiameter = widget.radius * (1.0 - controller.progress);
+      bubbleDiameter = widget.bubbleSize * lerpDouble(0.3, 1.0, (1.0 - controller.progress));
     }
 
     return new PolarPosition(
@@ -349,16 +374,28 @@ class _RadialMenuState extends State<RadialMenu> with TickerProviderStateMixin {
         widget.menu.items.firstWhere((MenuItem item) => item.id == controller.activationId);
     int activeIndex = widget.menu.items.indexOf(activeItem);
 
-    double startAngle;
-    double endAngle;
+    double ribbonStartAngle;
+    double ribbonEndAngle;
     double radius = 75.0;
     double opacity = 1.0;
     if (controller.state == RadialMenuState.activating) {
-      startAngle = -pi / 2 + (activeIndex * 2 * pi / widget.menu.items.length); // TODO:
-      endAngle = (2 * pi) * controller.progress + startAngle;
+      final menuSweepAngle = widget.endAngle - widget.startAngle;
+      final indexDivisor =
+          menuSweepAngle == 2 * pi ? widget.menu.items.length : widget.menu.items.length - 1;
+      final initialItemAngle = widget.startAngle + (menuSweepAngle * activeIndex / indexDivisor);
+
+      if (menuSweepAngle == 2 * pi) {
+        ribbonStartAngle = initialItemAngle;
+        ribbonEndAngle = initialItemAngle + (menuSweepAngle * controller.progress);
+      } else {
+        ribbonStartAngle =
+            initialItemAngle - ((initialItemAngle - widget.startAngle) * controller.progress);
+        ribbonEndAngle =
+            initialItemAngle + ((widget.endAngle - initialItemAngle) * controller.progress);
+      }
     } else if (controller.state == RadialMenuState.dissipating) {
-      startAngle = 0.0;
-      endAngle = 2 * pi;
+      ribbonStartAngle = widget.startAngle;
+      ribbonEndAngle = widget.endAngle;
 
       radius = 75 * (1.0 + (0.25 * controller.progress));
       opacity = 1.0 - controller.progress;
@@ -372,8 +409,8 @@ class _RadialMenuState extends State<RadialMenu> with TickerProviderStateMixin {
           painter: new ActivationPainter(
             radius: radius,
             color: activeItem.bubbleColor,
-            startAngle: startAngle,
-            endAngle: endAngle,
+            startAngle: ribbonStartAngle,
+            endAngle: ribbonEndAngle,
             thickness: 50.0,
           ),
         ),
@@ -390,8 +427,18 @@ class _RadialMenuState extends State<RadialMenu> with TickerProviderStateMixin {
         widget.menu.items.firstWhere((MenuItem item) => item.id == controller.activationId);
     int activeIndex = widget.menu.items.indexOf(activeItem);
 
-    final startAngle = -pi / 2 + (activeIndex * 2 * pi / widget.menu.items.length); // TODO:
-    final currAngle = (2 * pi) * controller.progress + startAngle;
+    double currAngle;
+
+    final sweepAngle = widget.endAngle - widget.startAngle;
+    final indexDivisor =
+        sweepAngle == 2 * pi ? widget.menu.items.length : widget.menu.items.length - 1;
+    final initialItemAngle = widget.startAngle + (activeIndex * sweepAngle / indexDivisor);
+    if (sweepAngle == 2 * pi) {
+      currAngle = (sweepAngle * controller.progress) + initialItemAngle;
+    } else {
+      final centerAngle = lerpDouble(widget.startAngle, widget.endAngle, 0.5);
+      currAngle = lerpDouble(initialItemAngle, centerAngle, controller.progress);
+    }
 
     return buildRadialBubble(
       id: activeItem.id,
