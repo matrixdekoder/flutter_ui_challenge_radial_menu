@@ -187,6 +187,67 @@ class AnchoredRadialMenu extends StatefulWidget {
 }
 
 class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
+  @override
+  Widget build(BuildContext context) {
+    return AnchoredOverlay(
+      showOverlay: true,
+      overlayBuilder: (BuildContext context, Offset anchor) {
+        return new CollidingRadialMenu(
+          menu: demoMenu,
+          anchor: anchor,
+          bubbleSize: 50.0,
+          menuRadius: 75.0,
+          startAngle: widget.startAngle,
+          endAngle: widget.endAngle,
+        );
+//        return new LayoutBuilder(
+//          builder: (BuildContext context, BoxConstraints constraints) {
+//            List<Widget> dots = checkForScreenIntersection(constraints, anchor);
+//
+//            return new Stack(
+//              children: <Widget>[
+//                new RadialMenu(
+//                  menu: demoMenu,
+//                  anchor: anchor,
+//                  bubbleSize: 50.0,
+//                  radius: 75.0,
+//                  startAngle: startAngle != null ? startAngle.toRadians() : widget.startAngle,
+//                  endAngle: endAngle != null ? endAngle.toRadians() : widget.endAngle,
+//                ),
+//              ]..addAll(dots),
+//            );
+//          },
+//        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+class CollidingRadialMenu extends StatefulWidget {
+  final Menu menu;
+  final Offset anchor;
+  final double menuRadius;
+  final double bubbleSize;
+  final double startAngle;
+  final double endAngle;
+  final Widget child;
+
+  CollidingRadialMenu({
+    this.menu,
+    this.anchor,
+    this.menuRadius = 75.0,
+    this.bubbleSize = 50.0,
+    this.startAngle = -pi / 2, // default to top of unit circle
+    this.endAngle = 2 * pi - (pi / 2), // default to top of unit circle + 360 degrees
+    this.child,
+  });
+
+  @override
+  _CollidingRadialMenuState createState() => new _CollidingRadialMenuState();
+}
+
+class _CollidingRadialMenuState extends State<CollidingRadialMenu> {
   Angle startAngle;
   Angle endAngle;
 
@@ -297,29 +358,23 @@ class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
 
   @override
   Widget build(BuildContext context) {
-    return AnchoredOverlay(
-      showOverlay: true,
-      overlayBuilder: (BuildContext context, Offset anchor) {
-        return new LayoutBuilder(
-          builder: (BuildContext context, BoxConstraints constraints) {
-            List<Widget> dots = checkForScreenIntersection(constraints, anchor);
+    return new LayoutBuilder(
+      builder: (BuildContext context, BoxConstraints constraints) {
+        List<Widget> dots = checkForScreenIntersection(constraints, widget.anchor);
 
-            return new Stack(
-              children: <Widget>[
-                new RadialMenu(
-                  menu: demoMenu,
-                  anchor: anchor,
-                  bubbleSize: 50.0,
-                  radius: 75.0,
-                  startAngle: startAngle != null ? startAngle.toRadians() : widget.startAngle,
-                  endAngle: endAngle != null ? endAngle.toRadians() : widget.endAngle,
-                ),
-              ]..addAll(dots),
-            );
-          },
+        return new Stack(
+          children: <Widget>[
+            new RadialMenu(
+              menu: demoMenu,
+              anchor: widget.anchor,
+              bubbleSize: 50.0,
+              radius: 75.0,
+              startAngle: startAngle != null ? startAngle.toRadians() : widget.startAngle,
+              endAngle: endAngle != null ? endAngle.toRadians() : widget.endAngle,
+            ),
+          ]..addAll(dots),
         );
       },
-      child: widget.child,
     );
   }
 }
