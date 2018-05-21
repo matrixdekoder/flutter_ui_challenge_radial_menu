@@ -7,6 +7,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:fluttery/layout.dart';
 import 'package:fluttery/gestures.dart';
 import 'package:meta/meta.dart';
+import 'package:radial_menu/geometry.dart';
 import 'package:radial_menu/layout.dart';
 import 'package:radial_menu/menu.dart';
 
@@ -166,200 +167,16 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 }
 
-class ScreenIntersector {
-  // Calculate intersections
-  // http://mathworld.wolfram.com/Circle-LineIntersection.html
-  Set<Point> intersect(BoxConstraints constraints, Point origin, double menuRadius) {
-    print('Screen size: $constraints');
-
-    print('Intersections for point: $origin');
-
-    final radius = menuRadius;
-    final topPoints = topIntersections(constraints, origin, radius);
-    final bottomPoints = bottomIntersections(constraints, origin, radius);
-    final leftPoints = leftIntersections(constraints, origin, radius);
-    final rightPoints = rightIntersections(constraints, origin, radius);
-
-    return topPoints..addAll(bottomPoints)..addAll(leftPoints)..addAll(rightPoints);
-  }
-
-  Set<Point> topIntersections(BoxConstraints constraints, Point origin, double menuRadius) {
-    final intersections = findIntersections(
-      new Point(0.0, 0.0) - origin,
-      new Point(constraints.maxWidth, 0.0) - origin,
-      origin,
-      menuRadius,
-    );
-
-    print('Top intersections:');
-    final topPoints = intersections.map((Point point) {
-      Point specificPoint = point + origin;
-      print(' - $specificPoint');
-      return specificPoint;
-    }).toSet();
-
-    topPoints.removeWhere((Point point) {
-      return point.x < 0.0 || point.x > constraints.maxWidth;
-    });
-
-    return topPoints;
-  }
-
-  Set<Point> bottomIntersections(BoxConstraints constraints, Point origin, double menuRadius) {
-    final intersections = findIntersections(
-      new Point(0.0, constraints.maxHeight) - origin,
-      new Point(constraints.maxWidth, constraints.maxHeight) - origin,
-      origin,
-      menuRadius,
-    );
-
-    print('Bottom intersections:');
-    final bottomPoints = intersections.map((Point point) {
-      Point specificPoint = point + origin;
-      print(' - $specificPoint');
-      return specificPoint;
-    }).toSet();
-
-    bottomPoints.removeWhere((Point point) {
-      return point.x < 0.0 || point.x > constraints.maxWidth;
-    });
-
-    return bottomPoints;
-  }
-
-  Set<Point> leftIntersections(BoxConstraints constraints, Point origin, double menuRadius) {
-    final intersections = findIntersections(
-      new Point(0.0, 0.0) - origin,
-      new Point(0.0, constraints.maxHeight) - origin,
-      origin,
-      menuRadius,
-    );
-
-    print('Left intersections:');
-    final leftPoints = intersections.map((Point point) {
-      Point specificPoint = point + origin;
-      print(' - $specificPoint');
-      return specificPoint;
-    }).toSet();
-
-    leftPoints.removeWhere((Point point) {
-      return point.y < 0.0 || point.y > constraints.maxHeight;
-    });
-
-    return leftPoints;
-  }
-
-  Set<Point> rightIntersections(BoxConstraints constraints, Point origin, double menuRadius) {
-    final intersections = findIntersections(
-      new Point(constraints.maxWidth, 0.0) - origin,
-      new Point(constraints.maxWidth, constraints.maxHeight) - origin,
-      origin,
-      menuRadius,
-    );
-
-    print('Right intersections:');
-    final rightPoints = intersections.map((Point point) {
-      Point specificPoint = point + origin;
-      print(' - $specificPoint');
-      return specificPoint;
-    }).toSet();
-
-    rightPoints.removeWhere((Point point) {
-      return point.y < 0.0 || point.y > constraints.maxHeight;
-    });
-
-    return rightPoints;
-  }
-
-  Set<Point> findIntersections(Point p1, Point p2, Point center, double radius) {
-    final double dx = p2.x - p1.x;
-    final double dy = p2.y - p1.y;
-    final double dSgn = dy >= 0 ? 1.0 : -1.0;
-    final double dr = sqrt(pow(dx, 2) + pow(dy, 2));
-    final double D = (p1.x * p2.y) - (p2.x * p1.y);
-
-    final discriminant = (pow(radius, 2) * pow(dr, 2)) - pow(D, 2);
-    if (discriminant <= 0) {
-      // No intersection.
-      return new Set<Point<double>>();
-    }
-
-    final xIntersect1 =
-        ((D * dy) + (dSgn * dx * sqrt((pow(radius, 2) * pow(dr, 2)) - pow(D, 2)))) / pow(dr, 2);
-    final yIntersect1 =
-        (-(D * dx) + (dy.abs() * sqrt((pow(radius, 2) * pow(dr, 2)) - pow(D, 2)))) / pow(dr, 2);
-
-    final xIntersect2 =
-        ((D * dy) - (dSgn * dx * sqrt((pow(radius, 2) * pow(dr, 2)) - pow(D, 2)))) / pow(dr, 2);
-    final yIntersect2 =
-        (-(D * dx) - (dy.abs() * sqrt((pow(radius, 2) * pow(dr, 2)) - pow(D, 2)))) / pow(dr, 2);
-
-    return [
-      new Point(xIntersect1, yIntersect1),
-      new Point(xIntersect2, yIntersect2),
-    ].toSet();
-  }
-}
-
-class Angle {
-  static const zero = const Angle.fromRadians(0.0);
-  static const halfCircle = const Angle.fromRadians(pi);
-  static const fullCircle = const Angle.fromRadians(2 * pi);
-
-  final _radians;
-
-  const Angle.fromRadians(this._radians);
-
-  const Angle.fromDegrees(double degrees) : _radians = 2 * pi * degrees / 360;
-
-  const Angle.fromPercent(double percent)
-      : _radians = 2 * pi * percent,
-        assert(percent >= 0.0 && percent <= 1.0, 'Percent must be within range [0.0, 1.0]');
-
-  Angle operator +(Angle other) => new Angle.fromRadians(_radians + other._radians);
-
-  Angle operator -(Angle other) => new Angle.fromRadians(_radians - other._radians);
-
-  Angle operator *(double multiplier) => new Angle.fromRadians(_radians * multiplier);
-
-  Angle operator /(double divisor) => new Angle.fromRadians(_radians / divisor);
-
-  bool operator >(Angle other) =>
-      toRadians(forcePositive: true) % (2 * pi) > other.toRadians(forcePositive: true) % (2 * pi);
-
-  bool operator >=(Angle other) => this > other || this == other;
-
-  bool operator <(Angle other) =>
-      toRadians(forcePositive: true) % (2 * pi) < other.toRadians(forcePositive: true) % (2 * pi);
-
-  bool operator <=(Angle other) => this < other || this == other;
-
-  @override
-  bool operator ==(other) =>
-      other is Angle &&
-      toRadians(forcePositive: true) % (2 * pi) == other.toRadians(forcePositive: true) % (2 * pi);
-
-  @override
-  int get hashCode => _radians.hashCode;
-
-  double toRadians({forcePositive = false}) =>
-      !forcePositive || _radians >= 0.0 ? _radians : _radians + 2 * pi;
-
-  double toDegrees({forcePositive = false}) =>
-      360 * toRadians(forcePositive: forcePositive) / (2 * pi);
-
-  double toPercent() => toRadians(forcePositive: false) / (2 * pi);
-
-  @override
-  String toString() => '${toDegrees()}°';
-}
-
 class AnchoredRadialMenu extends StatefulWidget {
+  final double menuRadius;
+  final double bubbleSize;
   final double startAngle;
   final double endAngle;
   final Widget child;
 
   AnchoredRadialMenu({
+    this.menuRadius = 75.0,
+    this.bubbleSize = 50.0,
     this.startAngle = -pi / 2, // default to top of unit circle
     this.endAngle = 2 * pi - (pi / 2), // default to top of unit circle + 360 degrees
     this.child,
@@ -370,98 +187,97 @@ class AnchoredRadialMenu extends StatefulWidget {
 }
 
 class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
-  final menuRadius = 75.0;
-  final bubbleSize = 50.0;
-
   Angle startAngle;
   Angle endAngle;
 
   List<Widget> checkForScreenIntersection(BoxConstraints constraints, Offset anchor) {
     final origin = new Point<double>(anchor.dx, anchor.dy);
-    ScreenIntersector intersector = new ScreenIntersector();
-    Set<Point> intersections = intersector.intersect(
-      constraints,
+    final screenSize = new Size(constraints.maxWidth, constraints.maxHeight);
+    final centerOfScreen = new Point(constraints.maxWidth / 2, constraints.maxHeight / 2);
+
+    // Find where menu circle intersects the screen boundaries.
+    Set<Point> intersections = intersect(
+      screenSize,
       origin,
-      menuRadius,
+      widget.menuRadius,
     );
 
-    Set<Point> menuPoints = intersections.map((Point intersection) {
-      final origin = new Point(anchor.dx, anchor.dy);
-      final intersectionPolar = new PolarCoord.fromPoints(origin, intersection);
-      final Angle intersectionAngle = new Angle.fromRadians(intersectionPolar.angle);
-
-      final centerOfScreen = new Point(constraints.maxWidth / 2, constraints.maxHeight / 2);
-      final Angle angleToCenterOfScreen =
-          new Angle.fromRadians(new PolarCoord.fromPoints(origin, centerOfScreen).angle);
-
-      const zero = const Angle.fromRadians(0.0);
-      const halfCircle = const Angle.fromRadians(pi);
-      const fullCircle = const Angle.fromRadians(2 * pi);
-      final Angle centerToIntersectDelta = angleToCenterOfScreen - intersectionAngle;
-      final isClockwise = (centerToIntersectDelta >= zero &&
-              centerToIntersectDelta <= halfCircle) ||
-          (centerToIntersectDelta < zero && (centerToIntersectDelta + fullCircle <= halfCircle));
-      final directionMultiplier = isClockwise ? 1 : -1;
-      final bubbleRadius = bubbleSize / 2;
-      final theta = new Angle.fromRadians(asin(bubbleRadius / menuRadius) * directionMultiplier);
-      final menuPointAngle = intersectionAngle + theta;
-
-      print(
-          'Angle to center: ${angleToCenterOfScreen.toDegrees()}, Intersection angle: ${intersectionAngle.toDegrees()}');
-      print('Going ${isClockwise ? 'clockwise' : 'counter-clockwise'}');
-      print('Menu point angle: ${menuPointAngle.toDegrees()}');
-
-      return new Point(
-        anchor.dx + (menuRadius * cos(menuPointAngle.toRadians())),
-        anchor.dy + (menuRadius * sin(menuPointAngle.toRadians())),
+    if (intersections.length == 2) {
+      // Adjust screen intersection points to leave room for bubble radii.
+      Set<Point> menuPoints = rotatePointsToMakeRoom(
+        points: intersections,
+        origin: origin,
+        direction: centerOfScreen,
+        radius: widget.menuRadius,
+        extraSpace: widget.bubbleSize / 2,
       );
-    }).toSet();
 
-    if (menuPoints.length == 2) {
-      Angle angle1 =
-          new Angle.fromRadians(new PolarCoord.fromPoints(origin, menuPoints.first).angle);
-      Angle angle2 =
-          new Angle.fromRadians(new PolarCoord.fromPoints(origin, menuPoints.last).angle);
+      // Choose a start angle and end angle based on menu points.
+      List<Angle> menuAngles = _createStartAndEndAnglesFromTwoPoints(
+        menuPoints,
+        origin,
+        centerOfScreen,
+      );
+      startAngle = menuAngles[0];
+      endAngle = menuAngles[1];
 
-      if (menuPoints.first.y < menuPoints.last.y) {
-        startAngle = angle1;
-        endAngle = angle2;
-      } else {
-        startAngle = angle2;
-        endAngle = angle1;
-      }
-      print('Initial start angle: $startAngle');
+      // Create debug dots
+      List<Widget> dots = []..addAll(menuPoints.map((Point point) {
+          return _createDot(point);
+        }));
 
-      final centerOfScreen = new Point(constraints.maxWidth / 2, constraints.maxHeight / 2);
-
-      Angle intersectionAngle = startAngle;
-
-      Angle angleToCenterOfScreen =
-          new Angle.fromRadians(new PolarCoord.fromPoints(origin, centerOfScreen).angle);
-
-      final Angle centerToIntersectDelta = angleToCenterOfScreen - intersectionAngle;
-      print('angleToCenterOfScreen: $angleToCenterOfScreen, intersectionAngle: $intersectionAngle');
-      print('centerToIntersectDelta: $centerToIntersectDelta');
-      final isClockwise =
-          (centerToIntersectDelta >= Angle.zero && centerToIntersectDelta <= Angle.halfCircle) ||
-              (centerToIntersectDelta < Angle.zero &&
-                  (centerToIntersectDelta + Angle.fullCircle <= Angle.halfCircle));
-
-      if (!isClockwise) {
-        startAngle = new Angle.fromRadians(startAngle.toRadians(forcePositive: true));
-        endAngle = new Angle.fromRadians(endAngle.toRadians(forcePositive: true));
-      }
+      return dots;
+    } else {
+      return const [];
     }
-    print('Start angle: $startAngle, end angle: $endAngle');
-
-    List<Widget> dots = []..addAll(menuPoints.map((Point point) {
-        return createDot(point);
-      }));
-
-    return dots;
   }
 
-  Widget createDot(Point position) {
+  List<Angle> _createStartAndEndAnglesFromTwoPoints(
+    Set<Point> menuEdgePoints,
+    Point origin,
+    Point centerOfScreen,
+  ) {
+    if (menuEdgePoints.length != 2) {
+      return const [];
+    }
+
+    Angle angle1 =
+        new Angle.fromRadians(new PolarCoord.fromPoints(origin, menuEdgePoints.first).angle);
+    Angle angle2 =
+        new Angle.fromRadians(new PolarCoord.fromPoints(origin, menuEdgePoints.last).angle);
+
+    if (menuEdgePoints.first.y < menuEdgePoints.last.y) {
+      startAngle = angle1;
+      endAngle = angle2;
+    } else {
+      startAngle = angle2;
+      endAngle = angle1;
+    }
+    print('Initial start angle: $startAngle');
+
+    Angle intersectionAngle = startAngle;
+
+    Angle angleToCenterOfScreen =
+        new Angle.fromRadians(new PolarCoord.fromPoints(origin, centerOfScreen).angle);
+
+    final Angle centerToIntersectDelta = angleToCenterOfScreen - intersectionAngle;
+    print('angleToCenterOfScreen: $angleToCenterOfScreen, intersectionAngle: $intersectionAngle');
+    print('centerToIntersectDelta: $centerToIntersectDelta');
+    final isClockwise =
+        (centerToIntersectDelta >= Angle.zero && centerToIntersectDelta <= Angle.halfCircle) ||
+            (centerToIntersectDelta < Angle.zero &&
+                (centerToIntersectDelta + Angle.fullCircle <= Angle.halfCircle));
+
+    if (!isClockwise) {
+      startAngle = new Angle.fromRadians(startAngle.toRadians(forcePositive: true));
+      endAngle = new Angle.fromRadians(endAngle.toRadians(forcePositive: true));
+    }
+
+    print('Start angle: $startAngle, end angle: $endAngle');
+    return [startAngle, endAngle];
+  }
+
+  Widget _createDot(Point position) {
     return new Positioned(
       left: position.x,
       top: position.y,
