@@ -56,6 +56,7 @@ class AnchoredRadialMenu extends StatefulWidget {
   final double bubbleSize;
   final double startAngle;
   final double endAngle;
+  final void Function(String itemId) onSelected;
   final Widget child;
 
   AnchoredRadialMenu({
@@ -63,6 +64,7 @@ class AnchoredRadialMenu extends StatefulWidget {
     this.bubbleSize = 50.0,
     this.startAngle = -pi / 2, // default to top of unit circle
     this.endAngle = 2 * pi - (pi / 2), // default to top of unit circle + 360 degrees
+    this.onSelected,
     this.child,
   });
 
@@ -83,6 +85,7 @@ class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
           menuRadius: 75.0,
           startAngle: widget.startAngle,
           endAngle: widget.endAngle,
+          onSelected: widget.onSelected,
         );
       },
       child: widget.child,
@@ -98,6 +101,7 @@ class CollidingRadialMenu extends StatefulWidget {
   final double startAngle;
   final double endAngle;
   final bool debugMode;
+  final void Function(String itemId) onSelected;
   final Widget child;
 
   CollidingRadialMenu({
@@ -107,6 +111,7 @@ class CollidingRadialMenu extends StatefulWidget {
     this.bubbleSize = 50.0,
     this.startAngle = -pi / 2, // default to top of unit circle
     this.endAngle = 2 * pi - (pi / 2), // default to top of unit circle + 360 degrees
+    this.onSelected,
     this.debugMode = false,
     this.child,
   });
@@ -345,6 +350,7 @@ class _CollidingRadialMenuState extends State<CollidingRadialMenu> {
                     to: new Angle.fromRadians(widget.endAngle),
                     direction: RadialDirection.clockwise,
                   ),
+              onSelected: widget.onSelected,
             ),
           ]..addAll(dots),
         );
@@ -359,6 +365,7 @@ class RadialMenu extends StatefulWidget {
   final double bubbleSize;
   final double radius;
   final Arc arc;
+  final void Function(String itemId) onSelected;
 
   RadialMenu({
     @required this.menu,
@@ -370,6 +377,7 @@ class RadialMenu extends StatefulWidget {
       to: const Angle.fromRadians(2 * pi - (pi / 2)),
       direction: RadialDirection.clockwise,
     ),
+    this.onSelected,
   });
 
   @override
@@ -385,6 +393,7 @@ class _RadialMenuState extends State<RadialMenu> with TickerProviderStateMixin {
 
     controller = new RadialMenuController(
       vsync: this,
+      onItemSelected: widget.onSelected,
     )..addListener(() => setState(() {}));
 
     new Timer(
@@ -713,6 +722,8 @@ class Bubble extends StatelessWidget {
 }
 
 class RadialMenuController extends ChangeNotifier {
+  final void Function(String itemId) onItemSelected;
+
   final Duration openDuration;
   final AnimationController openController;
 
@@ -744,6 +755,7 @@ class RadialMenuController extends ChangeNotifier {
     this.collapseDuration = const Duration(milliseconds: 150),
     this.activationDuration = const Duration(milliseconds: 500),
     this.dissipationDuration = const Duration(milliseconds: 250),
+    this.onItemSelected,
     @required this.vsync,
   })  : openController = new AnimationController(duration: openDuration, vsync: vsync),
         closeController = new AnimationController(duration: closeDuration, vsync: vsync),
@@ -844,7 +856,12 @@ class RadialMenuController extends ChangeNotifier {
           _progress = 0.0;
           notifyListeners();
         } else if (status == AnimationStatus.completed) {
+          if (null != onItemSelected) {
+            onItemSelected(_activationId);
+          }
+
           _state = RadialMenuState.open;
+          _activationId = null;
           notifyListeners();
         }
       });
