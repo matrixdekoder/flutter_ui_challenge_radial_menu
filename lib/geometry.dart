@@ -140,40 +140,65 @@ Set<Point> _findIntersections(Point p1, Point p2, double radius) {
   ].toSet();
 }
 
-Set<Point> rotatePointsToMakeRoom({
-  Set<Point> points,
+Arc rotatePointsToMakeRoom({
+  Arc arc,
   Point origin,
   Point direction,
   double radius,
   double extraSpace,
 }) {
-  return points.map((Point point) {
-    final intersectionPolar = new PolarCoord.fromPoints(origin, point);
-    final Angle intersectionAngle = new Angle.fromRadians(intersectionPolar.angle);
+  return new Arc(
+    from: _adjustAngleToMakeRoom(
+      intersectionPoint:
+          new Point(radius * cos(arc.from.toRadians()), radius * sin(arc.from.toRadians())),
+      intersectionAngle: arc.from,
+      rotationDirection: arc.direction == RadialDirection.clockwise
+          ? RadialDirection.clockwise
+          : RadialDirection.counterClockwise,
+      radius: radius,
+      extraSpace: extraSpace,
+      pushOutFromVerticalWall: false,
+    ),
+    to: _adjustAngleToMakeRoom(
+      intersectionPoint:
+          new Point(radius * cos(arc.to.toRadians()), radius * sin(arc.to.toRadians())),
+      intersectionAngle: arc.to,
+      rotationDirection: arc.direction == RadialDirection.clockwise
+          ? RadialDirection.counterClockwise
+          : RadialDirection.clockwise,
+      radius: radius,
+      extraSpace: extraSpace,
+      pushOutFromVerticalWall: false,
+    ),
+    direction: arc.direction,
+  );
+}
 
-    final Angle angleToCenterOfScreen =
-        new Angle.fromRadians(new PolarCoord.fromPoints(origin, direction).angle);
-
-    final Angle centerToIntersectDelta = angleToCenterOfScreen - intersectionAngle;
-    final isClockwise =
-        (centerToIntersectDelta >= Angle.zero && centerToIntersectDelta <= Angle.halfCircle) ||
-            (centerToIntersectDelta < Angle.zero &&
-                (centerToIntersectDelta + Angle.fullCircle <= Angle.halfCircle));
-    final directionMultiplier = isClockwise ? 1 : -1;
-    final bubbleRadius = extraSpace;
-    final theta = new Angle.fromRadians(asin(bubbleRadius / radius) * directionMultiplier);
-    final menuPointAngle = intersectionAngle + theta;
-
-    print(
-        'Angle to center: ${angleToCenterOfScreen.toDegrees()}, Intersection angle: ${intersectionAngle.toDegrees()}');
-    print('Going ${isClockwise ? 'clockwise' : 'counter-clockwise'}');
-    print('Menu point angle: ${menuPointAngle.toDegrees()}');
-
-    return new Point(
-      origin.x + (radius * cos(menuPointAngle.toRadians())),
-      origin.y + (radius * sin(menuPointAngle.toRadians())),
-    );
-  }).toSet();
+Angle _adjustAngleToMakeRoom({
+  Point intersectionPoint,
+  Angle intersectionAngle,
+  RadialDirection rotationDirection,
+  double radius,
+  double extraSpace,
+  bool pushOutFromVerticalWall,
+}) {
+  print('Adjusting angle $intersectionAngle to make room for $extraSpace pts. '
+      'Direction: ${radialDirectionName(rotationDirection)}');
+  print('Intersection point: $intersectionPoint');
+  final isClockwise = rotationDirection == RadialDirection.clockwise;
+  final directionMultiplier = isClockwise ? 1.0 : -1.0;
+  final bubbleRadius = extraSpace;
+  final theta = new Angle.fromRadians(asin(bubbleRadius / radius) * directionMultiplier);
+//  final theta = pushOutFromVerticalWall
+//      ? new Angle.fromRadians(asin(bubbleRadius / radius) * directionMultiplier)
+//      : new Angle.fromRadians((pi / 2) -
+//          acos((intersectionPoint.y - bubbleRadius) / radius) * -1 * directionMultiplier);
+//      : (new Angle.fromRadians(acos((intersectionPoint.y - bubbleRadius) / radius)) -
+//              new Angle.fromRadians(acos(bubbleRadius / radius))) *
+//          directionMultiplier;
+//  return intersectionAngle + theta;
+//  return theta;
+  return intersectionAngle + theta;
 }
 
 class Angle {
@@ -225,6 +250,105 @@ class Angle {
 
   double toPercent() => toRadians(forcePositive: false) / (2 * pi);
 
+  RadialDirection shortestDirectionTo(Angle other) {
+    print('Shortest direction from $this to $other');
+    final positiveStartAngle = toRadians(forcePositive: true);
+    final positiveEndAngle = toRadians(forcePositive: true);
+
+    if (positiveStartAngle > positiveEndAngle) {
+      return positiveStartAngle - positiveEndAngle <= pi
+          ? RadialDirection.counterClockwise
+          : RadialDirection.clockwise;
+    } else {
+      return positiveEndAngle - positiveStartAngle <= pi
+          ? RadialDirection.clockwise
+          : RadialDirection.counterClockwise;
+    }
+  }
+
   @override
   String toString() => '${toDegrees()}°';
+}
+
+class Arc {
+  final Angle from;
+  final Angle to;
+  final RadialDirection direction;
+
+  const Arc.clockwise({
+    this.from,
+    this.to,
+  }) : direction = RadialDirection.clockwise;
+
+  const Arc.counterClockwise({
+    this.from,
+    this.to,
+  }) : direction = RadialDirection.counterClockwise;
+
+  const Arc({
+    this.from,
+    this.to,
+    this.direction,
+  });
+
+  bool contains(Angle angle) {
+    final double positiveStartAngle = from.toRadians(forcePositive: true);
+    final double positiveEndAngle = to.toRadians(forcePositive: true);
+    final double positiveAngle = angle.toRadians(forcePositive: true);
+
+    if (direction == RadialDirection.clockwise) {
+      if (positiveEndAngle > positiveStartAngle) {
+        return positiveStartAngle <= positiveAngle && positiveAngle <= positiveEndAngle;
+      } else {
+        return !(positiveStartAngle <= positiveAngle && positiveAngle <= positiveEndAngle);
+      }
+    } else {
+      if (positiveEndAngle > positiveStartAngle) {
+        return !(positiveStartAngle <= positiveAngle && positiveAngle <= positiveEndAngle);
+      } else {
+        return positiveStartAngle <= positiveAngle && positiveAngle <= positiveEndAngle;
+      }
+    }
+  }
+
+  Angle sweepAngle() {
+    final double positiveStartAngle = from.toRadians(forcePositive: true);
+    final double positiveEndAngle = to.toRadians(forcePositive: true);
+
+    if (direction == RadialDirection.clockwise) {
+      if (positiveEndAngle > positiveStartAngle) {
+        return new Angle.fromRadians(positiveEndAngle - positiveStartAngle);
+      } else {
+        return new Angle.fromRadians(((2 * pi) - positiveStartAngle) + positiveEndAngle);
+      }
+    } else {
+      if (positiveEndAngle > positiveStartAngle) {
+        return new Angle.fromRadians(((2 * pi) - positiveEndAngle) + positiveStartAngle) * -1.0;
+      } else {
+        return new Angle.fromRadians(positiveStartAngle - positiveEndAngle) * -1.0;
+      }
+    }
+  }
+
+  @override
+  String toString() {
+    return 'Arc: ${from.toDegrees(forcePositive: true)}, '
+        '${to.toDegrees(forcePositive: true)}, '
+        '${radialDirectionName(direction)}';
+  }
+}
+
+enum RadialDirection {
+  clockwise,
+  counterClockwise,
+}
+
+String radialDirectionName(RadialDirection direction) {
+  switch (direction) {
+    case RadialDirection.clockwise:
+      return 'clockwise';
+    case RadialDirection.counterClockwise:
+      return 'counter-clockwise';
+  }
+  throw Exception('Invalid RadialDirection: $direction');
 }
