@@ -12,6 +12,7 @@ class MyApp extends StatelessWidget {
     return new MaterialApp(
       title: 'Radial Menu',
       theme: new ThemeData(
+        brightness: Brightness.dark,
         primarySwatch: Colors.blue,
       ),
       home: new MyHomePage(),
@@ -39,8 +40,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return new Scaffold(
-      appBar: new AppBar(
+    return Scaffold(
+      appBar: AppBar(
         leading: IconButton(
             icon: Icon(
               Icons.cancel,
@@ -149,7 +150,7 @@ class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
     return AnchoredOverlay(
       showOverlay: true,
       overlayBuilder: (BuildContext context, Offset anchor) {
-        return new RadialMenu(
+        return RadialMenu(
           anchor: anchor,
         );
       },
@@ -179,64 +180,121 @@ class _RadialMenuState extends State<RadialMenu> {
         // Center
         CenterAbout(
           position: widget.anchor,
-          child: Container(
-            width: 50.0,
-            height: 50.0,
-            color: Colors.red,
+          child: IconBubble(
+            icon: Icons.clear,
+            diameter: 50.0,
+            iconColor: Colors.black,
+            bubbleColor: Color(0xFFAAAAAA),
           ),
         ),
 
         // Radial bubbles
-        new PolarPosition(
+        PolarPosition(
           origin: widget.anchor,
-          coord: new PolarCoord(-pi / 2, widget.radius),
-          child: new Container(
-            width: 50.0,
-            height: 50.0,
-            color: Colors.green,
+          coord: PolarCoord(-pi / 2, widget.radius),
+          child: IconBubble(
+            icon: Icons.home,
+            diameter: 50.0,
+            iconColor: Colors.white,
+            bubbleColor: Colors.blue,
           ),
         ),
 
-        new PolarPosition(
+        PolarPosition(
           origin: widget.anchor,
-          coord: new PolarCoord(-pi / 2 + (1 * 2 * pi / 5), widget.radius),
-          child: new Container(
-            width: 50.0,
-            height: 50.0,
-            color: Colors.green,
+          coord: PolarCoord(-pi / 2 + (1 * 2 * pi / 5), widget.radius),
+          child: IconBubble(
+            icon: Icons.search,
+            diameter: 50.0,
+            iconColor: Colors.white,
+            bubbleColor: Colors.green,
           ),
         ),
 
-        new PolarPosition(
+        PolarPosition(
           origin: widget.anchor,
-          coord: new PolarCoord(-pi / 2 + (2 * 2 * pi / 5), widget.radius),
-          child: new Container(
-            width: 50.0,
-            height: 50.0,
-            color: Colors.green,
+          coord: PolarCoord(-pi / 2 + (2 * 2 * pi / 5), widget.radius),
+          child: IconBubble(
+            icon: Icons.alarm,
+            diameter: 50.0,
+            iconColor: Colors.white,
+            bubbleColor: Colors.red,
           ),
         ),
 
-        new PolarPosition(
+        PolarPosition(
           origin: widget.anchor,
-          coord: new PolarCoord(-pi / 2 + (3 * 2 * pi / 5), widget.radius),
-          child: new Container(
-            width: 50.0,
-            height: 50.0,
-            color: Colors.green,
+          coord: PolarCoord(-pi / 2 + (3 * 2 * pi / 5), widget.radius),
+          child: IconBubble(
+            icon: Icons.settings,
+            diameter: 50.0,
+            iconColor: Colors.white,
+            bubbleColor: Colors.purple,
           ),
         ),
 
-        new PolarPosition(
+        PolarPosition(
           origin: widget.anchor,
-          coord: new PolarCoord(-pi / 2 + (4 * 2 * pi / 5), widget.radius),
-          child: new Container(
-            width: 50.0,
-            height: 50.0,
-            color: Colors.green,
+          coord: PolarCoord(-pi / 2 + (4 * 2 * pi / 5), widget.radius),
+          child: IconBubble(
+            icon: Icons.location_on,
+            diameter: 50.0,
+            iconColor: Colors.white,
+            bubbleColor: Colors.orange,
           ),
         ),
       ],
+    );
+  }
+}
+
+class IconBubble extends StatelessWidget {
+  final IconData icon;
+  final double diameter;
+  final Color iconColor;
+  final Color bubbleColor;
+
+  IconBubble({
+    this.icon,
+    this.diameter,
+    this.iconColor,
+    this.bubbleColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Bubble(
+      diameter: diameter,
+      backgroundColor: bubbleColor,
+      child: new Icon(
+        icon,
+        color: iconColor,
+      ),
+    );
+  }
+}
+
+class Bubble extends StatelessWidget {
+  final double diameter;
+  final Color backgroundColor;
+  final Widget child;
+
+  Bubble({
+    this.diameter,
+    this.backgroundColor,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: diameter,
+      height: diameter,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: backgroundColor,
+      ),
+      child: child,
     );
   }
 }
@@ -254,12 +312,12 @@ class PolarPosition extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radialPosition = new Offset(
+    final radialPosition = Offset(
       origin.dx + (cos(coord.angle) * coord.radius),
       origin.dy + (sin(coord.angle) * coord.radius),
     );
 
-    return new CenterAbout(
+    return CenterAbout(
       position: radialPosition,
       child: child,
     );
