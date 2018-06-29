@@ -5,6 +5,39 @@ import 'package:flutter/material.dart';
 import 'package:fluttery/animations.dart';
 import 'package:fluttery/layout.dart';
 
+final demoMenu = new Menu(items: [
+  new MenuItem(
+    id: "1",
+    icon: Icons.home,
+    iconColor: Colors.white,
+    bubbleColor: Colors.blue,
+  ),
+  new MenuItem(
+    id: "2",
+    icon: Icons.search,
+    iconColor: Colors.white,
+    bubbleColor: Colors.green,
+  ),
+  new MenuItem(
+    id: "3",
+    icon: Icons.alarm,
+    iconColor: Colors.white,
+    bubbleColor: Colors.red,
+  ),
+  new MenuItem(
+    id: "4",
+    icon: Icons.settings,
+    iconColor: Colors.white,
+    bubbleColor: Colors.purple,
+  ),
+  new MenuItem(
+    id: "5",
+    icon: Icons.location_on,
+    iconColor: Colors.white,
+    bubbleColor: Colors.orange,
+  ),
+]);
+
 void main() => runApp(new MyApp());
 
 class MyApp extends StatelessWidget {
@@ -66,6 +99,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Align(
             alignment: Alignment.center,
             child: AnchoredRadialMenu(
+              menu: demoMenu,
               child: IconButton(
                 icon: Icon(
                   Icons.cancel,
@@ -135,9 +169,11 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class AnchoredRadialMenu extends StatefulWidget {
+  final Menu menu;
   final Widget child;
 
   AnchoredRadialMenu({
+    this.menu,
     this.child,
   });
 
@@ -153,6 +189,7 @@ class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
       overlayBuilder: (BuildContext context, Offset anchor) {
         return RadialMenu(
           anchor: anchor,
+          menu: widget.menu,
         );
       },
       child: widget.child,
@@ -162,11 +199,13 @@ class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
 
 class RadialMenu extends StatefulWidget {
   final Offset anchor;
+  final Menu menu;
   final double radius;
   final double bubbleSize;
 
   RadialMenu({
     this.anchor,
+    this.menu,
     this.radius = 75.0,
     this.bubbleSize = 50.0,
   });
@@ -258,7 +297,33 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
     );
   }
 
+  List<Widget> buildRadialBubbles() {
+    double startAngle = -pi / 2;
+    int index = 0;
+    int itemCount = widget.menu.items.length;
+
+    return widget.menu.items.map((MenuItem item) {
+      final myAngle = startAngle + (2 * pi * (index / itemCount));
+      ++index;
+
+      if ((_menuController.state == RadialMenuState.activating ||
+              _menuController.state == RadialMenuState.dissipating) &&
+          _menuController.activationId == item.id) {
+        return Container();
+      }
+
+      return buildRadialBubble(
+        id: item.id,
+        icon: item.icon,
+        iconColor: item.iconColor,
+        bubbleColor: item.bubbleColor,
+        angle: myAngle,
+      );
+    }).toList(growable: true);
+  }
+
   Widget buildRadialBubble({
+    String id,
     IconData icon,
     Color iconColor,
     Color bubbleColor,
@@ -292,27 +357,31 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
         iconColor: iconColor,
         bubbleColor: bubbleColor,
         onPressed: () {
-          _menuController.activate("todo");
+          _menuController.activate(id);
         },
       ),
     );
   }
 
-  Widget buildActivation() {
+  Widget buildActivationRibbon() {
     if (_menuController.state != RadialMenuState.activating &&
         _menuController.state != RadialMenuState.dissipating) {
       return Container();
     }
+
+    MenuItem activeItem =
+        widget.menu.items.firstWhere((MenuItem item) => item.id == _menuController.activationId);
+    int activeIndex = widget.menu.items.indexOf(activeItem);
 
     double startAngle;
     double endAngle;
     double radius = 75.0;
     double opacity = 1.0;
     if (_menuController.state == RadialMenuState.activating) {
-      startAngle = -pi / 2;
+      startAngle = -pi / 2 + (activeIndex * 2 * pi / widget.menu.items.length);
       endAngle = (2 * pi) * _menuController.progress + startAngle;
     } else if (_menuController.state == RadialMenuState.dissipating) {
-      startAngle = -pi / 2;
+      startAngle = 0.0;
       endAngle = 2 * pi;
 
       radius = widget.radius * (1.0 + (0.25 * _menuController.progress));
@@ -326,7 +395,7 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
         child: CustomPaint(
           painter: ActivationPainter(
             radius: radius,
-            color: Colors.blue,
+            color: activeItem.bubbleColor,
             startAngle: startAngle,
             endAngle: endAngle,
             thickness: 50.0,
@@ -336,51 +405,32 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
     );
   }
 
+  Widget buildActivationBubble() {
+    if (_menuController.state != RadialMenuState.activating) {
+      return Container();
+    }
+
+    MenuItem activeItem =
+        widget.menu.items.firstWhere((MenuItem item) => item.id == _menuController.activationId);
+    int activeIndex = widget.menu.items.indexOf(activeItem);
+
+    final startAngle = (-pi / 2) + (activeIndex * 2 * pi / widget.menu.items.length);
+    final currAngle = (2 * pi * _menuController.progress) + startAngle;
+
+    return buildRadialBubble(
+      id: activeItem.id,
+      icon: activeItem.icon,
+      iconColor: activeItem.iconColor,
+      bubbleColor: activeItem.bubbleColor,
+      angle: currAngle,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
-      children: <Widget>[
-        // Center
-        buildCenter(),
-
-        // Radial bubbles
-        buildRadialBubble(
-          icon: Icons.home,
-          iconColor: Colors.white,
-          bubbleColor: Colors.blue,
-          angle: -pi / 2,
-        ),
-
-        buildRadialBubble(
-          icon: Icons.search,
-          iconColor: Colors.white,
-          bubbleColor: Colors.green,
-          angle: -pi / 2 + (1 * 2 * pi / 5),
-        ),
-
-        buildRadialBubble(
-          icon: Icons.alarm,
-          iconColor: Colors.white,
-          bubbleColor: Colors.red,
-          angle: -pi / 2 + (2 * 2 * pi / 5),
-        ),
-
-        buildRadialBubble(
-          icon: Icons.settings,
-          iconColor: Colors.white,
-          bubbleColor: Colors.purple,
-          angle: -pi / 2 + (3 * 2 * pi / 5),
-        ),
-
-        buildRadialBubble(
-          icon: Icons.location_on,
-          iconColor: Colors.white,
-          bubbleColor: Colors.orange,
-          angle: -pi / 2 + (4 * 2 * pi / 5),
-        ),
-
-        buildActivation(),
-      ],
+      children: buildRadialBubbles()
+        ..addAll([buildCenter(), buildActivationRibbon(), buildActivationBubble()]),
     );
   }
 }
@@ -515,6 +565,7 @@ class PolarPosition extends StatelessWidget {
 class RadialMenuController extends ChangeNotifier {
   final AnimationController _progress;
   RadialMenuState _state = RadialMenuState.closed;
+  String _activationId;
 
   RadialMenuController({
     @required TickerProvider vsync,
@@ -568,6 +619,8 @@ class RadialMenuController extends ChangeNotifier {
 
   double get progress => _progress.value;
 
+  String get activationId => _activationId;
+
   void open() {
     if (state == RadialMenuState.closed) {
       _state = RadialMenuState.opening;
@@ -602,6 +655,7 @@ class RadialMenuController extends ChangeNotifier {
 
   void activate(String menuItemId) {
     if (state == RadialMenuState.expanded) {
+      _activationId = menuItemId;
       _state = RadialMenuState.activating;
       _progress.duration = Duration(milliseconds: 500);
       _progress.forward(from: 0.0);
@@ -619,4 +673,26 @@ enum RadialMenuState {
   collapsing,
   activating,
   dissipating,
+}
+
+class Menu {
+  final List<MenuItem> items;
+
+  Menu({
+    this.items,
+  });
+}
+
+class MenuItem {
+  final String id;
+  final IconData icon;
+  final Color iconColor;
+  final Color bubbleColor;
+
+  MenuItem({
+    this.id,
+    this.icon,
+    this.iconColor,
+    this.bubbleColor,
+  });
 }
