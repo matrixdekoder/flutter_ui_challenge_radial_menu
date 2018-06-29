@@ -243,8 +243,67 @@ class _RadialMenuState extends State<RadialMenu> {
             bubbleColor: Colors.orange,
           ),
         ),
+
+        CenterAbout(
+          position: widget.anchor,
+          child: CustomPaint(
+            painter: ActivationPainter(
+              radius: 75.0,
+              color: Colors.blue,
+              startAngle: -pi / 2,
+              endAngle: pi,
+              thickness: 50.0,
+            ),
+          ),
+        ),
       ],
     );
+  }
+}
+
+class ActivationPainter extends CustomPainter {
+  final double radius;
+  final Color color;
+  final double startAngle;
+  final double endAngle;
+  final double thickness;
+  final Paint activationPaint;
+
+  ActivationPainter({
+    this.radius,
+    this.color,
+    this.startAngle,
+    this.endAngle,
+    this.thickness,
+  }) : activationPaint = new Paint()
+          ..color = color
+          ..strokeWidth = thickness
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawArc(
+      Rect.fromLTWH(
+        -radius,
+        -radius,
+        radius * 2,
+        radius * 2,
+      ),
+      startAngle,
+      endAngle - startAngle,
+      false,
+      activationPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(ActivationPainter old) {
+    return old.radius != radius ||
+        old.color != color ||
+        old.startAngle != startAngle ||
+        old.endAngle != endAngle ||
+        old.thickness != endAngle;
   }
 }
 
