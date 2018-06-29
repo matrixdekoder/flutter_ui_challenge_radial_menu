@@ -163,10 +163,12 @@ class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
 class RadialMenu extends StatefulWidget {
   final Offset anchor;
   final double radius;
+  final double bubbleSize;
 
   RadialMenu({
     this.anchor,
     this.radius = 75.0,
+    this.bubbleSize = 50.0,
   });
 
   @override
@@ -203,6 +205,7 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
     IconData icon;
     Color bubbleColor;
     double scale = 1.0;
+    VoidCallback onPressed;
     switch (_menuController.state) {
       case RadialMenuState.closed:
         icon = Icons.menu;
@@ -222,6 +225,16 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
       case RadialMenuState.open:
         icon = Icons.menu;
         bubbleColor = Color(0xFFAAAAAA);
+        onPressed = () {
+          _menuController.expand();
+        };
+        break;
+      case RadialMenuState.expanded:
+        icon = Icons.clear;
+        bubbleColor = Color(0xFF888888);
+        onPressed = () {
+          _menuController.collapse();
+        };
         break;
       default:
         icon = Icons.clear;
@@ -239,6 +252,7 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
           diameter: 50.0,
           iconColor: Colors.black,
           bubbleColor: bubbleColor,
+          onPressed: onPressed,
         ),
       ),
     );
@@ -258,28 +272,65 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
       return Container();
     }
 
+    double distanceOut = widget.radius;
+    double bubbleSize = widget.bubbleSize;
+
+    if (_menuController.state == RadialMenuState.expanding) {
+      distanceOut = widget.radius * _menuController.progress;
+      bubbleSize = widget.bubbleSize * _menuController.progress;
+    } else if (_menuController.state == RadialMenuState.collapsing) {
+      distanceOut = widget.radius * (1.0 - _menuController.progress);
+      bubbleSize = widget.bubbleSize * (1.0 - _menuController.progress);
+    }
+
     return PolarPosition(
       origin: widget.anchor,
-      coord: PolarCoord(angle, widget.radius),
+      coord: PolarCoord(angle, distanceOut),
       child: IconBubble(
         icon: icon,
-        diameter: 50.0,
+        diameter: bubbleSize,
         iconColor: iconColor,
         bubbleColor: bubbleColor,
+        onPressed: () {
+          _menuController.activate("todo");
+        },
       ),
     );
   }
 
   Widget buildActivation() {
+    if (_menuController.state != RadialMenuState.activating &&
+        _menuController.state != RadialMenuState.dissipating) {
+      return Container();
+    }
+
+    double startAngle;
+    double endAngle;
+    double radius = 75.0;
+    double opacity = 1.0;
+    if (_menuController.state == RadialMenuState.activating) {
+      startAngle = -pi / 2;
+      endAngle = (2 * pi) * _menuController.progress + startAngle;
+    } else if (_menuController.state == RadialMenuState.dissipating) {
+      startAngle = -pi / 2;
+      endAngle = 2 * pi;
+
+      radius = widget.radius * (1.0 + (0.25 * _menuController.progress));
+      opacity = 1.0 - _menuController.progress;
+    }
+
     return CenterAbout(
       position: widget.anchor,
-      child: CustomPaint(
-        painter: ActivationPainter(
-          radius: 75.0,
-          color: Colors.blue,
-          startAngle: -pi / 2,
-          endAngle: -pi / 2,
-          thickness: 50.0,
+      child: Opacity(
+        opacity: opacity,
+        child: CustomPaint(
+          painter: ActivationPainter(
+            radius: radius,
+            color: Colors.blue,
+            startAngle: startAngle,
+            endAngle: endAngle,
+            thickness: 50.0,
+          ),
         ),
       ),
     );
@@ -385,22 +436,27 @@ class IconBubble extends StatelessWidget {
   final double diameter;
   final Color iconColor;
   final Color bubbleColor;
+  final VoidCallback onPressed;
 
   IconBubble({
     this.icon,
     this.diameter,
     this.iconColor,
     this.bubbleColor,
+    this.onPressed,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Bubble(
-      diameter: diameter,
-      backgroundColor: bubbleColor,
-      child: new Icon(
-        icon,
-        color: iconColor,
+    return GestureDetector(
+      onTap: onPressed,
+      child: Bubble(
+        diameter: diameter,
+        backgroundColor: bubbleColor,
+        child: new Icon(
+          icon,
+          color: iconColor,
+        ),
       ),
     );
   }
