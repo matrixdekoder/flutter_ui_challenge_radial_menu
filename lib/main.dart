@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:fluttery/animations.dart';
@@ -202,12 +203,16 @@ class RadialMenu extends StatefulWidget {
   final Menu menu;
   final double radius;
   final double bubbleSize;
+  final double startAngle;
+  final double endAngle;
 
   RadialMenu({
     this.anchor,
     this.menu,
     this.radius = 75.0,
     this.bubbleSize = 50.0,
+    this.startAngle = -pi / 2,
+    this.endAngle = 3 * pi / 2,
   });
 
   @override
@@ -298,12 +303,14 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
   }
 
   List<Widget> buildRadialBubbles() {
-    double startAngle = -pi / 2;
+    double startAngle = widget.startAngle;
+    double sweepAngle = widget.endAngle - startAngle;
     int index = 0;
     int itemCount = widget.menu.items.length;
 
     return widget.menu.items.map((MenuItem item) {
-      final myAngle = startAngle + (2 * pi * (index / itemCount));
+      int indexDivisor = sweepAngle == 2 * pi ? itemCount : itemCount - 1;
+      final myAngle = startAngle + (sweepAngle * (index / indexDivisor));
       ++index;
 
       if ((_menuController.state == RadialMenuState.activating ||
@@ -342,10 +349,10 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
 
     if (_menuController.state == RadialMenuState.expanding) {
       distanceOut = widget.radius * _menuController.progress;
-      bubbleSize = widget.bubbleSize * _menuController.progress;
+      bubbleSize = widget.bubbleSize * lerpDouble(0.3, 1.0, _menuController.progress);
     } else if (_menuController.state == RadialMenuState.collapsing) {
       distanceOut = widget.radius * (1.0 - _menuController.progress);
-      bubbleSize = widget.bubbleSize * (1.0 - _menuController.progress);
+      bubbleSize = widget.bubbleSize * lerpDouble(0.3, 1.0, (1.0 - _menuController.progress));
     }
 
     return PolarPosition(
@@ -380,9 +387,24 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
     if (_menuController.state == RadialMenuState.activating) {
       startAngle = -pi / 2 + (activeIndex * 2 * pi / widget.menu.items.length);
       endAngle = (2 * pi) * _menuController.progress + startAngle;
+
+      final menuSweepAngle = widget.endAngle - widget.startAngle;
+      final indexDivisor =
+          menuSweepAngle == 2 * pi ? widget.menu.items.length : widget.menu.items.length - 1;
+      final initialItemAngle = widget.startAngle + (menuSweepAngle * activeIndex / indexDivisor);
+
+      if (menuSweepAngle == 2 * pi) {
+        startAngle = initialItemAngle;
+        endAngle = initialItemAngle + (menuSweepAngle * _menuController.progress);
+      } else {
+        startAngle =
+            initialItemAngle - ((initialItemAngle - widget.startAngle) * _menuController.progress);
+        endAngle =
+            initialItemAngle + ((widget.endAngle - initialItemAngle) * _menuController.progress);
+      }
     } else if (_menuController.state == RadialMenuState.dissipating) {
-      startAngle = 0.0;
-      endAngle = 2 * pi;
+      startAngle = widget.startAngle;
+      endAngle = widget.endAngle;
 
       radius = widget.radius * (1.0 + (0.25 * _menuController.progress));
       opacity = 1.0 - _menuController.progress;
@@ -413,9 +435,18 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
     MenuItem activeItem =
         widget.menu.items.firstWhere((MenuItem item) => item.id == _menuController.activationId);
     int activeIndex = widget.menu.items.indexOf(activeItem);
+    double currAngle;
 
-    final startAngle = (-pi / 2) + (activeIndex * 2 * pi / widget.menu.items.length);
-    final currAngle = (2 * pi * _menuController.progress) + startAngle;
+    final sweepAngle = widget.endAngle - widget.startAngle;
+    final indexDivisor =
+        sweepAngle == 2 * pi ? widget.menu.items.length : widget.menu.items.length - 1;
+    final initialItemAngle = widget.startAngle + (activeIndex * sweepAngle / indexDivisor);
+    if (sweepAngle == 2 * pi) {
+      currAngle = (sweepAngle * _menuController.progress) + initialItemAngle;
+    } else {
+      final centerAngle = lerpDouble(widget.startAngle, widget.endAngle, 0.5);
+      currAngle = lerpDouble(initialItemAngle, centerAngle, _menuController.progress);
+    }
 
     return buildRadialBubble(
       id: activeItem.id,
