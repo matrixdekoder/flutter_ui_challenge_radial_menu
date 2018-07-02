@@ -163,16 +163,11 @@ class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
     return AnchoredOverlay(
       showOverlay: true,
       overlayBuilder: (BuildContext context, Offset anchor) {
-        return RadialMenu(
+        return CollidingRadialMenu(
           anchor: anchor,
           menu: widget.menu,
-          radius: widget.radius,
+          menuRadius: widget.radius,
           bubbleSize: widget.bubbleSize,
-          arc: const Arc(
-            from: Angle.fromRadians(-pi / 2),
-            to: Angle.fromRadians(3 * pi / 2),
-            direction: RadialDirection.clockwise,
-          ),
           onSelected: widget.onSelected,
         );
       },
