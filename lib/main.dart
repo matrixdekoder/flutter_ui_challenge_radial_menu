@@ -101,6 +101,11 @@ class _MyHomePageState extends State<MyHomePage> {
             alignment: Alignment.center,
             child: AnchoredRadialMenu(
               menu: demoMenu,
+              startAngle: -pi / 2,
+              endAngle: 3 * pi / 2,
+              onSelected: (String menuItemId) {
+                print('Selected: $menuItemId');
+              },
               child: IconButton(
                 icon: Icon(
                   Icons.cancel,
@@ -171,10 +176,20 @@ class _MyHomePageState extends State<MyHomePage> {
 
 class AnchoredRadialMenu extends StatefulWidget {
   final Menu menu;
+  final double radius;
+  final double bubbleSize;
+  final double startAngle;
+  final double endAngle;
+  final Function(String menuItemId) onSelected;
   final Widget child;
 
   AnchoredRadialMenu({
     this.menu,
+    this.radius = 75.0,
+    this.bubbleSize = 50.0,
+    this.startAngle = -pi / 2,
+    this.endAngle = 3 * pi / 2,
+    this.onSelected,
     this.child,
   });
 
@@ -191,6 +206,11 @@ class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
         return RadialMenu(
           anchor: anchor,
           menu: widget.menu,
+          radius: widget.radius,
+          bubbleSize: widget.bubbleSize,
+          startAngle: widget.startAngle,
+          onSelected: widget.onSelected,
+          endAngle: widget.endAngle,
         );
       },
       child: widget.child,
@@ -204,6 +224,7 @@ class RadialMenu extends StatefulWidget {
   final double radius;
   final double bubbleSize;
   final double startAngle;
+  final Function(String menuItemId) onSelected;
   final double endAngle;
 
   RadialMenu({
@@ -213,6 +234,7 @@ class RadialMenu extends StatefulWidget {
     this.bubbleSize = 50.0,
     this.startAngle = -pi / 2,
     this.endAngle = 3 * pi / 2,
+    this.onSelected,
   });
 
   @override
@@ -228,7 +250,9 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
 
     _menuController = RadialMenuController(
       vsync: this,
-    )..addListener(() => setState(() {}));
+    )
+      ..addListener(() => setState(() {}))
+      ..addSelectionListener(widget.onSelected);
 
     // Automatically open menu for testing.
     Timer(
@@ -249,6 +273,7 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
     IconData icon;
     Color bubbleColor;
     double scale = 1.0;
+    double rotation = 0.0;
     VoidCallback onPressed;
     switch (_menuController.state) {
       case RadialMenuState.closed:
@@ -264,7 +289,20 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
       case RadialMenuState.opening:
         icon = Icons.menu;
         bubbleColor = Color(0xFFAAAAAA);
-        scale = _menuController.progress;
+        scale = Interval(0.0, 1.0, curve: Curves.elasticOut).transform(_menuController.progress);
+        if (0.0 < _menuController.progress && _menuController.progress < 0.5) {
+          rotation = lerpDouble(
+            0.0,
+            pi / 4,
+            Interval(0.0, 0.5).transform(_menuController.progress),
+          );
+        } else if (_menuController.progress >= 0.5) {
+          rotation = lerpDouble(
+            pi / 4,
+            0.0,
+            Interval(0.5, 1.0).transform(_menuController.progress),
+          );
+        }
         break;
       case RadialMenuState.open:
         icon = Icons.menu;
@@ -273,23 +311,64 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
           _menuController.expand();
         };
         break;
+      case RadialMenuState.expanding:
+        icon = Icons.clear;
+        bubbleColor = Color(0xFF666666);
+        rotation = Interval(0.0, 0.5, curve: Curves.easeOut).transform(_menuController.progress) *
+            (pi / 2);
+        break;
+      case RadialMenuState.collapsing:
+        icon = Icons.menu;
+        bubbleColor = Color(0xFFAAAAAA);
+        rotation = (pi / 2) - (_menuController.progress * (pi / 2));
+        break;
       case RadialMenuState.expanded:
         icon = Icons.clear;
-        bubbleColor = Color(0xFF888888);
+        bubbleColor = Color(0xFF666666);
+        rotation = pi / 2;
         onPressed = () {
           _menuController.collapse();
         };
         break;
-      default:
+      case RadialMenuState.activating:
         icon = Icons.clear;
-        bubbleColor = Color(0xFF888888);
+        bubbleColor = Color(0xFF666666);
+        scale = lerpDouble(
+          1.0,
+          0.0,
+          Interval(0.0, 0.9, curve: Curves.easeOut).transform(_menuController.progress),
+        );
+        break;
+      case RadialMenuState.dissipating:
+        icon = Icons.menu;
+        bubbleColor = Color(0xFFAAAAAA);
+        scale = lerpDouble(
+          0.0,
+          1.0,
+          Interval(0.0, 1.0, curve: Curves.elasticOut).transform(_menuController.progress),
+        );
+        if (0.0 < _menuController.progress && _menuController.progress < 0.5) {
+          rotation = lerpDouble(
+            0.0,
+            pi / 4,
+            Interval(0.0, 0.5).transform(_menuController.progress),
+          );
+        } else if (_menuController.progress >= 0.5) {
+          rotation = lerpDouble(
+            pi / 4,
+            0.0,
+            Interval(0.5, 1.0).transform(_menuController.progress),
+          );
+        }
         break;
     }
 
     return CenterAbout(
       position: widget.anchor,
       child: Transform(
-        transform: Matrix4.identity()..scale(scale, scale),
+        transform: Matrix4.identity()
+          ..scale(scale, scale)
+          ..rotateZ(rotation),
         alignment: Alignment.center,
         child: IconBubble(
           icon: icon,
@@ -348,8 +427,10 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
     double bubbleSize = widget.bubbleSize;
 
     if (_menuController.state == RadialMenuState.expanding) {
-      distanceOut = widget.radius * _menuController.progress;
-      bubbleSize = widget.bubbleSize * lerpDouble(0.3, 1.0, _menuController.progress);
+      distanceOut = widget.radius * Curves.elasticOut.transform(_menuController.progress);
+      bubbleSize = widget.bubbleSize *
+          lerpDouble(0.5, 1.0,
+              Interval(0.0, 0.3, curve: Curves.easeOut).transform(_menuController.progress));
     } else if (_menuController.state == RadialMenuState.collapsing) {
       distanceOut = widget.radius * (1.0 - _menuController.progress);
       bubbleSize = widget.bubbleSize * lerpDouble(0.3, 1.0, (1.0 - _menuController.progress));
@@ -406,8 +487,9 @@ class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateM
       startAngle = widget.startAngle;
       endAngle = widget.endAngle;
 
-      radius = widget.radius * (1.0 + (0.25 * _menuController.progress));
-      opacity = 1.0 - _menuController.progress;
+      final adjustedProgress = Interval(0.0, 0.5).transform(_menuController.progress);
+      radius = widget.radius * (1.0 + (0.25 * adjustedProgress));
+      opacity = 1.0 - adjustedProgress;
     }
 
     return CenterAbout(
@@ -597,10 +679,12 @@ class RadialMenuController extends ChangeNotifier {
   final AnimationController _progress;
   RadialMenuState _state = RadialMenuState.closed;
   String _activationId;
+  List<Function(String menuItemId)> _onSelectedListeners;
 
   RadialMenuController({
     @required TickerProvider vsync,
-  }) : _progress = AnimationController(vsync: vsync) {
+  })  : _progress = AnimationController(vsync: vsync),
+        _onSelectedListeners = [] {
     _progress
       ..addListener(_onProgressUpdate)
       ..addStatusListener((AnimationStatus status) {
@@ -608,6 +692,22 @@ class RadialMenuController extends ChangeNotifier {
           _onTransitionCompleted();
         }
       });
+  }
+
+  @override
+  void dispose() {
+    _onSelectedListeners.clear();
+    super.dispose();
+  }
+
+  void addSelectionListener(Function(String menuItemid) onSelected) {
+    _onSelectedListeners.add(onSelected);
+  }
+
+  void _notifySelectionListeners() {
+    _onSelectedListeners.forEach((listener) {
+      listener(_activationId);
+    });
   }
 
   void _onProgressUpdate() {
@@ -630,11 +730,13 @@ class RadialMenuController extends ChangeNotifier {
         break;
       case RadialMenuState.activating:
         _state = RadialMenuState.dissipating;
-        _progress.duration = Duration(milliseconds: 250);
+        _progress.duration = Duration(milliseconds: 500);
         _progress.forward(from: 0.0);
         break;
       case RadialMenuState.dissipating:
+        _notifySelectionListeners();
         _state = RadialMenuState.open;
+        _activationId = null;
         break;
       case RadialMenuState.closed:
       case RadialMenuState.open:
@@ -655,7 +757,7 @@ class RadialMenuController extends ChangeNotifier {
   void open() {
     if (state == RadialMenuState.closed) {
       _state = RadialMenuState.opening;
-      _progress.duration = Duration(milliseconds: 250);
+      _progress.duration = Duration(milliseconds: 500);
       _progress.forward(from: 0.0);
     }
   }
@@ -671,7 +773,7 @@ class RadialMenuController extends ChangeNotifier {
   void expand() {
     if (state == RadialMenuState.open) {
       _state = RadialMenuState.expanding;
-      _progress.duration = Duration(milliseconds: 150);
+      _progress.duration = Duration(milliseconds: 500);
       _progress.forward(from: 0.0);
     }
   }
