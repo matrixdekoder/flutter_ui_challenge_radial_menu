@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:flutter/material.dart';
@@ -132,89 +133,166 @@ class RadialMenu extends StatefulWidget {
   _RadialMenuState createState() => _RadialMenuState();
 }
 
-class _RadialMenuState extends State<RadialMenu> {
+class _RadialMenuState extends State<RadialMenu> with SingleTickerProviderStateMixin {
+  static const Color openBubbleColor = const Color(0xFFAAAAAA);
+  static const Color expandedBubbleColor = const Color(0xFF666666);
+
+  RadialMenuController _menuController;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _menuController = RadialMenuController(
+      vsync: this,
+    )..addListener(() => setState(() {}));
+
+    Timer(
+      Duration(seconds: 2),
+      () {
+        _menuController.open();
+      },
+    );
+  }
+
+  @override
+  void dispose() {
+    _menuController.dispose();
+    super.dispose();
+  }
+
+  Widget buildCenter() {
+    IconData icon;
+    Color bubbleColor;
+    double scale = 1.0;
+
+    switch (_menuController.state) {
+      case RadialMenuState.closed:
+        icon = Icons.menu;
+        bubbleColor = openBubbleColor;
+        scale = 0.0;
+        break;
+      case RadialMenuState.closing:
+        icon = Icons.menu;
+        bubbleColor = openBubbleColor;
+        scale = 1.0 - _menuController.progress;
+        break;
+      case RadialMenuState.opening:
+        icon = Icons.menu;
+        bubbleColor = openBubbleColor;
+        scale = _menuController.progress;
+        break;
+      case RadialMenuState.open:
+        icon = Icons.menu;
+        bubbleColor = openBubbleColor;
+        scale = 1.0;
+        break;
+      default:
+        icon = Icons.clear;
+        bubbleColor = expandedBubbleColor;
+        scale = 1.0;
+        break;
+    }
+
+    return CenterAbout(
+      position: widget.anchor,
+      child: Transform(
+        transform: Matrix4.identity()..scale(scale, scale),
+        alignment: Alignment.center,
+        child: IconBubble(
+          icon: icon,
+          diameter: 50.0,
+          bubbleColor: bubbleColor,
+          iconColor: Colors.black,
+        ),
+      ),
+    );
+  }
+
+  Widget buildRadialBubble({
+    IconData icon,
+    Color iconColor,
+    Color bubbleColor,
+    double angle,
+  }) {
+    if (_menuController.state == RadialMenuState.closed ||
+        _menuController.state == RadialMenuState.closing ||
+        _menuController.state == RadialMenuState.opening ||
+        _menuController.state == RadialMenuState.open ||
+        _menuController.state == RadialMenuState.dissipating) {
+      return Container();
+    }
+
+    return PolarPosition(
+      origin: widget.anchor,
+      coord: PolarCoord(angle, widget.radius),
+      child: IconBubble(
+        icon: icon,
+        diameter: 50.0,
+        bubbleColor: bubbleColor,
+        iconColor: iconColor,
+      ),
+    );
+  }
+
+  Widget buildActivation() {
+    return CenterAbout(
+      position: widget.anchor,
+      child: CustomPaint(
+        painter: ActivationPainter(
+          radius: widget.radius,
+          thickness: 50.0,
+          color: Colors.blue,
+          startAngle: -pi / 2,
+          endAngle: -pi / 2,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Stack(
       children: <Widget>[
-        CenterAbout(
-          position: widget.anchor,
-          child: IconBubble(
-            icon: Icons.clear,
-            diameter: 50.0,
-            bubbleColor: Color(0xFFAAAAAA),
-            iconColor: Colors.black,
-          ),
-        ),
+        buildCenter(),
 
         // Radial Bubbles
-        PolarPosition(
-          origin: widget.anchor,
-          coord: PolarCoord(-pi / 2, widget.radius),
-          child: IconBubble(
-            icon: Icons.home,
-            diameter: 50.0,
-            bubbleColor: Colors.blue,
-            iconColor: Colors.white,
-          ),
+        buildRadialBubble(
+          icon: Icons.home,
+          bubbleColor: Colors.blue,
+          iconColor: Colors.white,
+          angle: -pi / 2,
         ),
 
-        PolarPosition(
-          origin: widget.anchor,
-          coord: PolarCoord(-pi / 2 + (1 * 2 * pi / 5), widget.radius),
-          child: IconBubble(
-            icon: Icons.search,
-            diameter: 50.0,
-            bubbleColor: Colors.green,
-            iconColor: Colors.white,
-          ),
+        buildRadialBubble(
+          icon: Icons.search,
+          bubbleColor: Colors.green,
+          iconColor: Colors.white,
+          angle: -pi / 2 + (1 * 2 * pi / 5),
         ),
 
-        PolarPosition(
-          origin: widget.anchor,
-          coord: PolarCoord(-pi / 2 + (2 * 2 * pi / 5), widget.radius),
-          child: IconBubble(
-            icon: Icons.alarm,
-            diameter: 50.0,
-            bubbleColor: Colors.red,
-            iconColor: Colors.white,
-          ),
+        buildRadialBubble(
+          icon: Icons.alarm,
+          bubbleColor: Colors.red,
+          iconColor: Colors.white,
+          angle: -pi / 2 + (2 * 2 * pi / 5),
         ),
 
-        PolarPosition(
-          origin: widget.anchor,
-          coord: PolarCoord(-pi / 2 + (3 * 2 * pi / 5), widget.radius),
-          child: IconBubble(
-            icon: Icons.settings,
-            diameter: 50.0,
-            bubbleColor: Colors.purple,
-            iconColor: Colors.white,
-          ),
+        buildRadialBubble(
+          icon: Icons.settings,
+          bubbleColor: Colors.purple,
+          iconColor: Colors.white,
+          angle: -pi / 2 + (3 * 2 * pi / 5),
         ),
 
-        PolarPosition(
-          origin: widget.anchor,
-          coord: PolarCoord(-pi / 2 + (4 * 2 * pi / 5), widget.radius),
-          child: IconBubble(
-            icon: Icons.location_on,
-            diameter: 50.0,
-            bubbleColor: Colors.orange,
-            iconColor: Colors.white,
-          ),
+        buildRadialBubble(
+          icon: Icons.location_on,
+          bubbleColor: Colors.orange,
+          iconColor: Colors.white,
+          angle: -pi / 2 + (4 * 2 * pi / 5),
         ),
 
-        CenterAbout(
-          position: widget.anchor,
-          child: CustomPaint(
-            painter: ActivationPainter(
-              radius: widget.radius,
-              thickness: 50.0,
-              color: Colors.blue,
-              startAngle: -pi / 2,
-              endAngle: -pi / 2 + pi,
-            ),
-          ),
-        )
+        buildActivation(),
       ],
     );
   }
@@ -315,4 +393,118 @@ class PolarPosition extends StatelessWidget {
       child: child,
     );
   }
+}
+
+class RadialMenuController extends ChangeNotifier {
+  final AnimationController _progress;
+  RadialMenuState _state = RadialMenuState.closed;
+
+  RadialMenuController({
+    @required TickerProvider vsync,
+  }) : _progress = AnimationController(vsync: vsync) {
+    _progress
+      ..addListener(_onProgressUpdate)
+      ..addStatusListener((AnimationStatus status) {
+        if (status == AnimationStatus.completed) {
+          _onTransitionCompleted();
+        }
+      });
+  }
+
+  void _onProgressUpdate() {
+    notifyListeners();
+  }
+
+  void _onTransitionCompleted() {
+    switch (_state) {
+      case RadialMenuState.closing:
+        _state = RadialMenuState.closed;
+        break;
+      case RadialMenuState.opening:
+        _state = RadialMenuState.open;
+        break;
+      case RadialMenuState.expanding:
+        _state = RadialMenuState.expanded;
+        break;
+      case RadialMenuState.collapsing:
+        _state = RadialMenuState.open;
+        break;
+      case RadialMenuState.activating:
+        _state = RadialMenuState.dissipating;
+        _progress.duration = Duration(milliseconds: 250);
+        _progress.forward(from: 0.0);
+        break;
+      case RadialMenuState.dissipating:
+        _state = RadialMenuState.open;
+        break;
+      case RadialMenuState.closed:
+      case RadialMenuState.open:
+      case RadialMenuState.expanded:
+        throw Exception('Invalid state during a transition: $_state');
+        break;
+    }
+
+    notifyListeners();
+  }
+
+  RadialMenuState get state => _state;
+
+  double get progress => _progress.value;
+
+  void open() {
+    if (state == RadialMenuState.closed) {
+      _state = RadialMenuState.opening;
+      _progress.duration = Duration(milliseconds: 250);
+      _progress.forward(from: 0.0);
+      notifyListeners();
+    }
+  }
+
+  void close() {
+    if (state == RadialMenuState.open) {
+      _state = RadialMenuState.closing;
+      _progress.duration = Duration(milliseconds: 250);
+      _progress.forward(from: 0.0);
+      notifyListeners();
+    }
+  }
+
+  void expand() {
+    if (state == RadialMenuState.open) {
+      _state = RadialMenuState.expanding;
+      _progress.duration = Duration(milliseconds: 150);
+      _progress.forward(from: 0.0);
+      notifyListeners();
+    }
+  }
+
+  void collapse() {
+    if (state == RadialMenuState.expanded) {
+      _state = RadialMenuState.collapsing;
+      _progress.duration = Duration(milliseconds: 150);
+      _progress.forward(from: 0.0);
+      notifyListeners();
+    }
+  }
+
+  void activate(String menuItemId) {
+    if (state == RadialMenuState.expanded) {
+      _state = RadialMenuState.activating;
+      _progress.duration = Duration(milliseconds: 500);
+      _progress.forward(from: 0.0);
+      notifyListeners();
+    }
+  }
+}
+
+enum RadialMenuState {
+  closed,
+  closing,
+  opening,
+  open,
+  expanding,
+  collapsing,
+  expanded,
+  activating,
+  dissipating,
 }
