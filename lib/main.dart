@@ -202,8 +202,63 @@ class _RadialMenuState extends State<RadialMenu> {
             iconColor: Colors.white,
           ),
         ),
+
+        CenterAbout(
+          position: widget.anchor,
+          child: CustomPaint(
+            painter: ActivationPainter(
+              radius: widget.radius,
+              thickness: 50.0,
+              color: Colors.blue,
+              startAngle: -pi / 2,
+              endAngle: -pi / 2 + pi,
+            ),
+          ),
+        )
       ],
     );
+  }
+}
+
+class ActivationPainter extends CustomPainter {
+  final double radius;
+  final double thickness;
+  final Color color;
+  final double startAngle;
+  final double endAngle;
+  final Paint activationPaint;
+
+  ActivationPainter({
+    this.radius,
+    this.thickness,
+    this.color,
+    this.startAngle,
+    this.endAngle,
+  }) : activationPaint = new Paint()
+          ..color = color
+          ..strokeWidth = thickness
+          ..style = PaintingStyle.stroke
+          ..strokeCap = StrokeCap.round;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    canvas.drawArc(
+      Rect.fromLTWH(
+        -radius,
+        -radius,
+        radius * 2,
+        radius * 2,
+      ),
+      startAngle,
+      endAngle - startAngle,
+      false,
+      activationPaint,
+    );
+  }
+
+  @override
+  bool shouldRepaint(CustomPainter oldDelegate) {
+    return true;
   }
 }
 
