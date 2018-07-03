@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fluttery/layout.dart';
 
 void main() => runApp(new MyApp());
 
@@ -31,6 +32,17 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 
+  Widget _buildCenterMenu() {
+    return AnchoredRadialMenu(
+      child: IconButton(
+        icon: Icon(
+          Icons.cancel,
+        ),
+        onPressed: () {},
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -46,7 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
           // Center
           Align(
             alignment: Alignment.center,
-            child: _buildMenu(),
+            child: _buildCenterMenu(),
           ),
 
           // Middle Left
@@ -73,6 +85,57 @@ class _MyHomePageState extends State<MyHomePage> {
             child: _buildMenu(),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class AnchoredRadialMenu extends StatefulWidget {
+  final Widget child;
+
+  AnchoredRadialMenu({
+    this.child,
+  });
+
+  @override
+  _AnchoredRadialMenuState createState() => _AnchoredRadialMenuState();
+}
+
+class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
+  @override
+  Widget build(BuildContext context) {
+    return AnchoredOverlay(
+      showOverlay: true,
+      overlayBuilder: (BuildContext context, Offset anchor) {
+        return RadialMenu(
+          anchor: anchor,
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
+class RadialMenu extends StatefulWidget {
+  final Offset anchor;
+
+  RadialMenu({
+    this.anchor,
+  });
+
+  @override
+  _RadialMenuState createState() => _RadialMenuState();
+}
+
+class _RadialMenuState extends State<RadialMenu> {
+  @override
+  Widget build(BuildContext context) {
+    return CenterAbout(
+      position: widget.anchor,
+      child: Container(
+        width: 50.0,
+        height: 50.0,
+        color: Colors.red,
       ),
     );
   }
