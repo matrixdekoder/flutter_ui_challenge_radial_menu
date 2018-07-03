@@ -1,4 +1,7 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
+import 'package:fluttery/animations.dart';
 import 'package:fluttery/layout.dart';
 
 void main() => runApp(new MyApp());
@@ -118,9 +121,11 @@ class _AnchoredRadialMenuState extends State<AnchoredRadialMenu> {
 
 class RadialMenu extends StatefulWidget {
   final Offset anchor;
+  final double radius;
 
   RadialMenu({
     this.anchor,
+    this.radius = 75.0,
   });
 
   @override
@@ -130,13 +135,93 @@ class RadialMenu extends StatefulWidget {
 class _RadialMenuState extends State<RadialMenu> {
   @override
   Widget build(BuildContext context) {
+    return Stack(
+      children: <Widget>[
+        CenterAbout(
+          position: widget.anchor,
+          child: Container(
+            width: 50.0,
+            height: 50.0,
+            color: Colors.red,
+          ),
+        ),
+
+        // Radial Bubbles
+        PolarPosition(
+          origin: widget.anchor,
+          coord: PolarCoord(-pi / 2, widget.radius),
+          child: Container(
+            width: 50.0,
+            height: 50.0,
+            color: Colors.blue,
+          ),
+        ),
+
+        PolarPosition(
+          origin: widget.anchor,
+          coord: PolarCoord(-pi / 2 + (1 * 2 * pi / 5), widget.radius),
+          child: Container(
+            width: 50.0,
+            height: 50.0,
+            color: Colors.green,
+          ),
+        ),
+
+        PolarPosition(
+          origin: widget.anchor,
+          coord: PolarCoord(-pi / 2 + (2 * 2 * pi / 5), widget.radius),
+          child: Container(
+            width: 50.0,
+            height: 50.0,
+            color: Colors.red,
+          ),
+        ),
+
+        PolarPosition(
+          origin: widget.anchor,
+          coord: PolarCoord(-pi / 2 + (3 * 2 * pi / 5), widget.radius),
+          child: Container(
+            width: 50.0,
+            height: 50.0,
+            color: Colors.purple,
+          ),
+        ),
+
+        PolarPosition(
+          origin: widget.anchor,
+          coord: PolarCoord(-pi / 2 + (4 * 2 * pi / 5), widget.radius),
+          child: Container(
+            width: 50.0,
+            height: 50.0,
+            color: Colors.orange,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class PolarPosition extends StatelessWidget {
+  final Offset origin;
+  final PolarCoord coord;
+  final Widget child;
+
+  PolarPosition({
+    this.origin = const Offset(0.0, 0.0),
+    this.coord,
+    this.child,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final radialPosition = Offset(
+      origin.dx + (cos(coord.angle) * coord.radius),
+      origin.dy + (sin(coord.angle) * coord.radius),
+    );
+
     return CenterAbout(
-      position: widget.anchor,
-      child: Container(
-        width: 50.0,
-        height: 50.0,
-        color: Colors.red,
-      ),
+      position: radialPosition,
+      child: child,
     );
   }
 }
